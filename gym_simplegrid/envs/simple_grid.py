@@ -101,6 +101,9 @@ class SimpleGridEnv(Env):
         # parse options
         self.start_xy = self.parse_state_option("start_loc", options)
         self.goal_xy = self.parse_state_option("goal_loc", options)
+        self.state_transition_overrides = self.parse_state_transition_overrides(
+            "state_transition_overrides", options
+        )
 
         # initialise internal vars
         self.agent_xy = self.start_xy
@@ -123,7 +126,10 @@ class SimpleGridEnv(Env):
 
         # Get the current position of the agent
         row, col = self.agent_xy
-        dx, dy = self.MOVES[action]
+        if (row, col) in self.state_transition_overrides:
+            dx, dy = self.state_transition_overrides[(row, col)][action]
+        else:
+            dx, dy = self.MOVES[action]
 
         # Compute the target position of the agent
         target_row = row + dx
@@ -196,6 +202,19 @@ class SimpleGridEnv(Env):
             )
             logger.info(f"...`{state_name}` has value: {state}")
             return state
+
+    def parse_state_transition_overrides(self, state_name: str, options: dict) -> dict:
+        """
+        parse overridden transitions (such as a transition moving two squares instead of one) from the dictionary of options usually passed to the reset method.
+        """
+        try:
+            overrides = options[state_name]
+            if isinstance(overrides, dict):
+                return overrides
+            else:
+                raise TypeError(f"Allowed types for `{state_name}` are dict.")
+        except KeyError:
+            return dict()
 
     def sample_valid_state_xy(self) -> tuple:
         state = self.observation_space.sample()
