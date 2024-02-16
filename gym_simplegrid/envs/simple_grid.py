@@ -101,6 +101,10 @@ class SimpleGridEnv(Env):
         # parse options
         self.start_xy = self.parse_state_option("start_loc", options)
         self.goal_xy = self.parse_state_option("goal_loc", options)
+
+        if self.start_xy == self.goal_xy:
+            self.goal_xy = self.sample_valid_state_xy(mask=[self.start_xy])
+
         self.state_transition_overrides = self.parse_state_transition_overrides(
             "state_transition_overrides", options
         )
@@ -113,8 +117,8 @@ class SimpleGridEnv(Env):
         # Check integrity
         self.integrity_checks()
 
-        # if self.render_mode == "human":
-        self.render()
+        if self.render_mode:
+            self.render()
 
         return self.get_obs(), self.get_info()
 
@@ -145,7 +149,6 @@ class SimpleGridEnv(Env):
             self.agent_xy = (target_row, target_col)
             self.done = self.on_goal()
 
-        # if self.render_mode == "human":
         if self.render_mode:
             self.render()
 
@@ -216,12 +219,16 @@ class SimpleGridEnv(Env):
         except KeyError:
             return dict()
 
-    def sample_valid_state_xy(self) -> tuple:
+    def sample_valid_state_xy(self, mask: list = None) -> tuple:
         state = self.observation_space.sample()
         pos_xy = self.to_xy(state)
         while not self.is_free(*pos_xy):
             state = self.observation_space.sample()
             pos_xy = self.to_xy(state)
+        if mask:
+            while pos_xy in mask:
+                state = self.observation_space.sample()
+                pos_xy = self.to_xy(state)
         return pos_xy
 
     def integrity_checks(self) -> None:
