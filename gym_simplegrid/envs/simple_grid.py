@@ -222,11 +222,12 @@ class SimpleGridEnv(Env):
     def sample_valid_state_xy(self, mask: list = None) -> tuple:
         state = self.observation_space.sample()
         pos_xy = self.to_xy(state)
-        while not self.is_free(*pos_xy):
-            state = self.observation_space.sample()
-            pos_xy = self.to_xy(state)
         if mask:
-            while pos_xy in mask:
+            while pos_xy in mask and not self.is_free(*pos_xy):
+                state = self.observation_space.sample()
+                pos_xy = self.to_xy(state)
+        else:
+            while not self.is_free(*pos_xy):
                 state = self.observation_space.sample()
                 pos_xy = self.to_xy(state)
         return pos_xy
