@@ -130,8 +130,8 @@ class SimpleGridEnv(Env):
 
         # Get the current position of the agent
         row, col = self.agent_xy
-        if (row, col) in self.state_transition_overrides:
-            dx, dy = self.state_transition_overrides[(row, col)][action]
+        if self.agent_xy in self.state_transition_overrides.keys():
+            dx, dy = self.state_transition_overrides[self.agent_xy][action]
         else:
             dx, dy = self.MOVES[action]
 
