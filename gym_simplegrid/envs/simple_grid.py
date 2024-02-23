@@ -220,16 +220,14 @@ class SimpleGridEnv(Env):
             return dict()
 
     def sample_valid_state_xy(self, mask: list = None) -> tuple:
-        state = self.observation_space.sample()
-        pos_xy = self.to_xy(state)
-        if mask:
-            while pos_xy in mask and not self.is_free(*pos_xy):
-                state = self.observation_space.sample()
-                pos_xy = self.to_xy(state)
-        else:
-            while not self.is_free(*pos_xy):
-                state = self.observation_space.sample()
-                pos_xy = self.to_xy(state)
+        ok = False
+        while not ok:
+            state = self.observation_space.sample()
+            pos_xy = self.to_xy(state)
+            if mask:
+                ok = pos_xy not in mask and self.is_free(*pos_xy)
+            else:
+                ok = self.is_free(*pos_xy)
         return pos_xy
 
     def integrity_checks(self) -> None:
@@ -440,28 +438,6 @@ class SimpleGridEnv(Env):
         """
         Produce a compact numpy encoding of the grid
         """
-        #     width = self.ncol
-        #     height = self.nrow
-
-        #     if vis_mask is None:
-        #         vis_mask = np.ones((width, height), dtype=bool)
-
-        #     array = np.zeros((width, height, 3), dtype='uint8')
-
-        #     for i in range(width):
-        #         for j in range(height):
-        #             if vis_mask[i, j]:
-        #                 v = self.get(i, j)
-
-        #                 if v is None:
-        #                     array[i, j, 0] = r.OBJECT_TO_IDX['empty']
-        #                     array[i, j, 1] = 0
-        #                     array[i, j, 2] = 0
-
-        #                 else:
-        #                     array[i, j, :] = v.encode()
-
-        #     return array
         pass
 
     @staticmethod
@@ -469,19 +445,4 @@ class SimpleGridEnv(Env):
         """
         Decode an array grid encoding back into a grid
         """
-
-        #     width, height, channels = array.shape
-        #     assert channels == 3
-
-        #     vis_mask = np.ones(shape=(width, height), dtype=bool)
-
-        #     grid = SimpleGrid(width, height)
-        #     for i in range(width):
-        #         for j in range(height):
-        #             type_idx, color_idx, state = array[i, j]
-        #             v = WorldObj.decode(type_idx, color_idx, state)
-        #             grid.set(i, j, v)
-        #             vis_mask[i, j] = (type_idx != OBJECT_TO_IDX['unseen'])
-
-        #     return grid, vis_mask
         pass
