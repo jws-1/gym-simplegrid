@@ -213,6 +213,7 @@ class SimpleGridEnv(Env):
         try:
             overrides = options[state_name]
             if isinstance(overrides, dict):
+                overrides = {self.to_xy(k): v for k, v in overrides.items()}
                 return overrides
             else:
                 raise TypeError(f"Allowed types for `{state_name}` are dict.")
