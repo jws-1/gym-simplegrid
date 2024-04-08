@@ -85,10 +85,6 @@ class SimpleGridEnv(Env):
         self.fps = self.metadata["render_fps"]
         # self.frames = []
 
-    def states(self) -> int:
-        for s in range(self.nS):
-            yield s
-
     def reset(self, seed: int | None = None, options: dict = dict()) -> tuple:
         """
         Reset the environment.
