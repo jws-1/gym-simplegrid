@@ -71,6 +71,8 @@ class SimpleGridEnv(Env):
         # Env confinguration
         self.obstacles = self.parse_obstacle_map(obstacle_map)  # walls
         self.nrow, self.ncol = self.obstacles.shape
+        self.nS = self.nrow * self.ncol
+        self.nA = len(self.MOVES)
 
         self.action_space = spaces.Discrete(len(self.MOVES))
         self.observation_space = spaces.Discrete(n=self.nrow * self.ncol)
@@ -82,6 +84,10 @@ class SimpleGridEnv(Env):
         self.tile_cache = {}
         self.fps = self.metadata["render_fps"]
         # self.frames = []
+
+    def states(self) -> int:
+        for s in range(self.nS):
+            yield s
 
     def reset(self, seed: int | None = None, options: dict = dict()) -> tuple:
         """
@@ -122,14 +128,39 @@ class SimpleGridEnv(Env):
 
         return self.get_obs(), self.get_info()
 
+    def simulate_step(self, row: int, col: int, a: int):
+        """
+        Simulate a step in the environment.
+        """
+        if (row, col) in self.state_transition_overrides.keys():
+            dx, dy = self.state_transition_overrides[(row, col)][a]
+        else:
+            dx, dy = self.MOVES[a]
+        x, y = row, col
+        target_x = x + dx
+        target_y = y + dy
+        if self.is_in_bounds(target_x, target_y) and self.is_free(target_x, target_y):
+            return (target_x, target_y)
+        else:
+            return (x, y)
+
     def step(self, action: int):
         """
         Take a step in the environment.
         """
         # assert action in self.action_space
-
         # Get the current position of the agent
         row, col = self.agent_xy
+
+        if not self.is_free(row, col):
+            return (
+                self.get_obs(),
+                self.get_reward(row, col),
+                self.done,
+                False,
+                self.get_info(),
+            )
+
         if self.agent_xy in self.state_transition_overrides.keys():
             dx, dy = self.state_transition_overrides[self.agent_xy][action]
         else:
@@ -290,6 +321,7 @@ class SimpleGridEnv(Env):
             return 0.0
 
     def get_obs(self) -> int:
+        return self.agent_xy
         return self.to_s(*self.agent_xy)
 
     def get_info(self) -> dict:
