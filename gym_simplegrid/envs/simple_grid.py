@@ -131,11 +131,14 @@ class SimpleGridEnv(Env):
 
         return self.get_obs(), self.get_info()
 
-    def simulate_step(self, row: int, col: int, a: int):
+    def simulate_step(self, row: int, col: int, a: int, ignore_overrides: bool = False):
         """
         Simulate a step in the environment.
         """
-        if (row, col) in self.state_transition_overrides.keys():
+        if (
+            row,
+            col,
+        ) in self.state_transition_overrides.keys() and not ignore_overrides:
             dx, dy = self.state_transition_overrides[(row, col)][a]
         else:
             dx, dy = self.MOVES[a]
