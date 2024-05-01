@@ -85,6 +85,10 @@ class SimpleGridEnv(Env):
         self.fps = self.metadata["render_fps"]
         # self.frames = []
 
+    def labelled_states(self):
+        for i in range(self.nS):
+            yield self.to_xy(i), i
+
     def reset(self, seed: int | None = None, options: dict = dict()) -> tuple:
         """
         Reset the environment.
@@ -100,15 +104,18 @@ class SimpleGridEnv(Env):
         # Set seed
         super().reset(seed=seed)
 
-        # parse options
-        self.start_xy = self.parse_state_option("start_loc", options)
-        self.goal_xy = self.parse_state_option("goal_loc", options)
-
-        if self.start_xy == self.goal_xy:
-            self.goal_xy = self.sample_valid_state_xy(mask=[self.start_xy])
-
+        self.unreachable_states = self.parse_unreachable_states(
+            "unreachable_states", options
+        )
         self.state_transition_overrides = self.parse_state_transition_overrides(
             "state_transition_overrides", options
+        )
+        # print(self.state_transition_overrides)
+
+        # parse options
+        self.start_xy = self.parse_state_option("start_loc", options)
+        self.goal_xy = self.parse_state_option(
+            "goal_loc", options, mask=[self.start_xy, *self.unreachable_states]
         )
 
         # initialise internal vars
@@ -212,7 +219,9 @@ class SimpleGridEnv(Env):
                 f"You must provide either a map of obstacles or the name of an existing map. Available existing maps are {', '.join(MAPS.keys())}."
             )
 
-    def parse_state_option(self, state_name: str, options: dict) -> tuple:
+    def parse_state_option(
+        self, state_name: str, options: dict, mask: list = None
+    ) -> tuple:
         """
         parse the value of an option of type state from the dictionary of options usually passed to the reset method. Such value denotes a position on the map and it must be an int or a tuple.
         """
@@ -225,12 +234,12 @@ class SimpleGridEnv(Env):
             else:
                 raise TypeError(f"Allowed types for `{state_name}` are int or tuple.")
         except KeyError:
-            state = self.sample_valid_state_xy()
-            logger = logging.getLogger()
-            logger.info(
-                f"Key `{state_name}` not found in `options`. Random sampling a valid value for it:"
-            )
-            logger.info(f"...`{state_name}` has value: {state}")
+            state = self.sample_valid_state_xy(mask)
+            # logger = logging.getLogger()
+            # logger.info(
+            #     f"Key `{state_name}` not found in `options`. Random sampling a valid value for it:"
+            # )
+            # logger.info(f"...`{state_name}` has value: {state}")
             return state
 
     def parse_state_transition_overrides(self, state_name: str, options: dict) -> dict:
@@ -246,6 +255,20 @@ class SimpleGridEnv(Env):
                 raise TypeError(f"Allowed types for `{state_name}` are dict.")
         except KeyError:
             return dict()
+
+    def parse_unreachable_states(self, state_name: str, options: dict) -> list:
+        """
+        parse unreachable states from the dictionary of options usually passed to the reset method.
+        """
+        try:
+            unreachable_states = options[state_name]
+            if isinstance(unreachable_states, list):
+                unreachable_states = [self.to_xy(s) for s in unreachable_states]
+                return unreachable_states
+            else:
+                raise TypeError(f"Allowed types for `{state_name}` are list.")
+        except KeyError:
+            return []
 
     def sample_valid_state_xy(self, mask: list = None) -> tuple:
         ok = False
@@ -307,6 +330,7 @@ class SimpleGridEnv(Env):
         """
         Get the reward of a given cell.
         """
+        return -1.0
         if not self.is_in_bounds(x, y):
             return -1.0
         elif not self.is_free(x, y):
@@ -317,7 +341,6 @@ class SimpleGridEnv(Env):
             return 0.0
 
     def get_obs(self) -> int:
-        return self.agent_xy
         return self.to_s(*self.agent_xy)
 
     def get_info(self) -> dict:
